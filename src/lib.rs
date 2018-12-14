@@ -99,12 +99,12 @@ impl GuiVstEditor {
 impl Editor for GuiVstEditor {
     fn size(&self) -> (i32, i32) {
         info!("Editor::size()");
-        (1024, 768)
+        (1000, 1000)
     }
 
     fn position(&self) -> (i32, i32) {
         info!("Editor::position()");
-        (50, 50)
+        (0, 0)
     }
 
     fn close(&mut self) {
