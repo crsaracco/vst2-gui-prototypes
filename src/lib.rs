@@ -68,6 +68,8 @@ impl Plugin for GuiVst {
         info!("init()");
     }
 
+    // TODO: return None if the editor couldn't be created
+    // (for example, if the connection to the X server couldn't be established)
     fn get_editor(&mut self) -> Option<&mut Editor> {
         info!("get_editor()");
         Some(&mut self.editor)
@@ -114,8 +116,9 @@ impl GuiVstEditor {
         self.screen_num = screen_num;
     }
 
-    fn create_window(&mut self) {
+    fn create_window(&mut self, parent: u32) {
         info!("GuiVstEditor::create_window()");
+        info!("Parent: {}", parent);
 
         self.create_connection();
 
@@ -126,7 +129,7 @@ impl GuiVstEditor {
 
         self.draw_context = conn.generate_id();
 
-        xcb::create_gc(&conn, self.draw_context, screen.root(), &[
+        xcb::create_gc(&conn, self.draw_context, parent, &[
             (xcb::GC_FOREGROUND, screen.black_pixel()),
             (xcb::GC_GRAPHICS_EXPOSURES, 0),
         ]);
@@ -135,7 +138,7 @@ impl GuiVstEditor {
         xcb::create_window(&conn,
                            xcb::COPY_FROM_PARENT as u8,
                            self.window_handle,
-                           screen.root(),
+                           parent,
                            0, 0,
                            150, 150,
                            10,
@@ -149,25 +152,7 @@ impl GuiVstEditor {
         xcb::map_window(&conn, self.window_handle);
         conn.flush();
 
-        let event = conn.wait_for_event();
-        match event {
-            None => { }
-            Some(event) => {
-                let r = event.response_type() & !0x80;
-                match r {
-                    xcb::EXPOSE => {
-                        self.draw_editor();
-                    },
-                    xcb::KEY_PRESS => {
-                        let key_press: &xcb::KeyPressEvent = unsafe {
-                            xcb::cast_event(&event)
-                        };
-                        info!("Key '{}' pressed", key_press.detail());
-                    },
-                    _ => {}
-                }
-            }
-        }
+        self.draw_editor();
     }
 
     fn draw_editor(&mut self) {
@@ -200,12 +185,13 @@ impl Editor for GuiVstEditor {
 
     fn close(&mut self) {
         info!("Editor::close()");
+        self.x_connection = None;
         self.is_open = false;
     }
 
     fn open(&mut self, parent: *mut c_void) {
         info!("Editor::open()");
-        self.create_window();
+        self.create_window(parent as u32);
     }
 
     fn is_open(&mut self) -> bool {
