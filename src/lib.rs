@@ -72,6 +72,7 @@ impl Plugin for GuiVst {
     // (for example, if the connection to the X server couldn't be established)
     fn get_editor(&mut self) -> Option<&mut Editor> {
         info!("get_editor()");
+        self.editor.draw_editor();
         Some(&mut self.editor)
     }
 }
@@ -87,6 +88,10 @@ struct GuiVstEditor {
     screen_num: i32,
     window_handle: u32,
     draw_context: u32,
+    x: i32,
+    y: i32,
+    width: i32,
+    height: i32,
 }
 
 impl GuiVstEditor {
@@ -107,6 +112,10 @@ impl GuiVstEditor {
             screen_num: 0,
             window_handle: 0,
             draw_context: 0,
+            x: 0,
+            y: 0,
+            width: 1000,
+            height: 1000,
         }
     }
 
@@ -139,9 +148,11 @@ impl GuiVstEditor {
                            xcb::COPY_FROM_PARENT as u8,
                            self.window_handle,
                            parent,
-                           0, 0,
-                           150, 150,
-                           10,
+                           self.x as i16,
+                           self.y as i16,
+                           self.width as u16,
+                           self.height as u16,
+                           0,
                            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                            screen.root_visual(), &[
                 (xcb::CW_BACK_PIXEL, screen.white_pixel()),
@@ -175,12 +186,12 @@ impl GuiVstEditor {
 impl Editor for GuiVstEditor {
     fn size(&self) -> (i32, i32) {
         info!("Editor::size()");
-        (1000, 1000)
+        (self.width, self.height)
     }
 
     fn position(&self) -> (i32, i32) {
         info!("Editor::position()");
-        (0, 0)
+        (self.x, self.y)
     }
 
     fn close(&mut self) {
