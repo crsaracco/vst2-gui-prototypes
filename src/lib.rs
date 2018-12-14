@@ -1,14 +1,12 @@
 extern crate vst;
 extern crate log;
 extern crate simplelog;
-extern crate x11;
+extern crate xcb;
 
 use std::{
     ffi::{c_void},
-    os::raw::{c_ulong, c_uint},
-    ptr,
+    os::raw::{c_ulong},
     fs::File,
-    mem,
 };
 use vst::{
     plugin_main,
@@ -20,8 +18,6 @@ use vst::{
     editor::Editor
 };
 use log::*;
-use x11::xlib;
-
 
 
 
@@ -113,41 +109,36 @@ impl Editor for GuiVstEditor {
     }
 
     fn open(&mut self, parent: *mut c_void) {
-        unsafe {
-            info!("Editor::open()");
+        info!("Editor::open()");
 
-            /*
-            NOTE: This commented-out part isn't working.
-            Main issue for right now is I don't really know what I'm doing with this `*mut c_void`
+        info!("parent_handle: {}", parent as u32);
 
-            // TODO: Can I get the display from the parent somehow?
-            // (just trying to get default stuff for now, just to see *anything* working)
-            let display = xlib::XOpenDisplay(ptr::null());
-            let screen = xlib::XDefaultScreen(display);
-            let root = xlib::XRootWindow(display, screen);
-            let mut attributes: xlib::XSetWindowAttributes = mem::uninitialized();
-            // TODO: set attributes
-
-            let window = xlib::XCreateWindow( // Name          Rust type                  C type
-               display,                       // display       *mut Display               Display*
-               root,                          // parent        c_ulong                    Window
-               0,                             // x             c_int                      int
-               0,                             // y             c_int                      int
-               1000,                          // width         c_uint                     unsigned int
-               1000,                          // height        c_uint                     unsigned int
-               0,                             // border_width  c_uint                     unsigned int
-               0,                             // depth         c_int                      int
-               xlib::InputOutput as c_uint,   // class         c_uint                     unsigned int
-               ptr::null_mut(),               // visual        *mut Visual                visual*
-               0,                             // valuemask     c_ulong                    unsigned long
-               &mut attributes,               // attributes    *mut XSetWindowAttributes  XSetWindowAttributes*
-            );
-
-            // TODO: call XMapWindow to show the window after creating it
-            self.window_handle = window;
-            self.is_open = true;
-            */
-        }
+        let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+        let setup = conn.get_setup();
+        let screen = setup.roots().nth(screen_num as usize).unwrap();
+        let foreground = conn.generate_id();
+        xcb::create_gc(&conn, foreground, screen.root(), &[
+            (xcb::GC_FOREGROUND, screen.black_pixel()),
+            (xcb::GC_GRAPHICS_EXPOSURES, 0),
+        ]);
+        let win = conn.generate_id();
+        xcb::create_window(
+            &conn,
+            xcb::COPY_FROM_PARENT as u8,
+            win,
+            parent as u32,
+            0, 0,
+            1000, 1000,
+            10,
+            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
+            screen.root_visual(), &[
+                (xcb::CW_BACK_PIXEL, screen.white_pixel()),
+                (xcb::CW_EVENT_MASK,
+                 xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS),
+            ]
+        );
+        xcb::map_window(&conn, win);
+        conn.flush();
     }
 
     fn is_open(&mut self) -> bool {
