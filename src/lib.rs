@@ -81,30 +81,48 @@ impl Plugin for GuiVst {
 struct GuiVstEditor {
     is_open: bool,
     polyline: Vec<xcb::Point>,
+    x_connection: Option<xcb::Connection>,
+    screen_num: i32,
     window_handle: u32,
     draw_context: u32,
 }
 
 impl GuiVstEditor {
     fn new() -> Self {
+        info!("GuiVstEditor::new()");
+
+        let mut polyline: Vec<xcb::Point> = vec![];
+
+        polyline.push(xcb::Point::new(50, 10 ));
+        polyline.push(xcb::Point::new(5, 20 ));
+        polyline.push(xcb::Point::new(25, -20 ));
+        polyline.push(xcb::Point::new(10, 10 ));
+
         Self {
             is_open: false,
-            polyline: vec![],
+            polyline,
+            x_connection: None,
+            screen_num: 0,
             window_handle: 0,
             draw_context: 0,
         }
     }
 
+    fn create_connection(&mut self) {
+        let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+        self.x_connection = Some(conn);
+        self.screen_num = screen_num;
+    }
+
     fn create_window(&mut self) {
         info!("GuiVstEditor::create_window()");
-        self.polyline.push(xcb::Point::new(50, 10 ));
-        self.polyline.push(xcb::Point::new(5, 20 ));
-        self.polyline.push(xcb::Point::new(25, -20 ));
-        self.polyline.push(xcb::Point::new(10, 10 ));
 
-        let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
+        self.create_connection();
+
+        let conn = self.x_connection.as_mut().unwrap();
+
         let setup = conn.get_setup();
-        let screen = setup.roots().nth(screen_num as usize).unwrap();
+        let screen = setup.roots().nth(self.screen_num as usize).unwrap();
 
         self.draw_context = conn.generate_id();
 
@@ -153,7 +171,7 @@ impl GuiVstEditor {
     }
 
     fn draw_editor(&mut self) {
-        info!("GuiVstEditor::draw_editor()");
+        info!("GuiVstEditor::draw_editor() begin...");
         // Draw the polyline
         let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
         xcb::poly_line(&conn,
@@ -165,8 +183,7 @@ impl GuiVstEditor {
 
         // Flush the request
         conn.flush();
-
-        std::thread::sleep_ms(1000);
+        info!("GuiVstEditor::draw_editor() done.");
     }
 }
 
