@@ -1,0 +1,15 @@
+[package]
+name = "gui-vst"
+version = "0.1.0"
+authors = ["Charles Saracco <crsaracco@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+vst = { path = "/home/crs/programming/rust/rust-vst/" }
+log = "0.4"
+simplelog = "^0.5.0"
+x11 = "*"
+
+[lib]
+name = "guivst"
+crate-type = ["dylib"]
