@@ -13,3 +13,4 @@ xcb = "0.8"
 [lib]
 name = "guivst"
 crate-type = ["dylib"]
+# TODO: cdylib insteadl of dylib?
