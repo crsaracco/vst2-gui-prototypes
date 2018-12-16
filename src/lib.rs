@@ -22,6 +22,8 @@ use editor::Editor;
 
 struct GuiVst {
     editor: Editor,
+    param1: f32,
+    param2: f32,
 }
 
 impl Default for GuiVst {
@@ -42,6 +44,8 @@ impl Default for GuiVst {
 
         Self {
             editor: Editor::new(),
+            param1: 0.0,
+            param2: 0.0,
         }
     }
 }
@@ -55,7 +59,7 @@ impl Plugin for GuiVst {
             category: Category::Synth,
             inputs: 0,
             outputs: 2,
-            parameters: 0,
+            parameters: 2,
             initial_delay: 0,
             ..Info::default()
         }
@@ -71,6 +75,38 @@ impl Plugin for GuiVst {
         info!("get_editor()");
         self.editor.draw_editor();
         Some(&mut self.editor)
+    }
+
+    fn get_parameter(&self, index: i32) -> f32 {
+        match index {
+            0 => self.param1,
+            1 => self.param2,
+            _ => 0.0,
+        }
+    }
+
+    fn get_parameter_text(&self, index: i32) -> String {
+        match index {
+            0 => format!("{:.1}%", self.param1 * 100.0),
+            1 => format!("{:.1}%", self.param2 * 100.0),
+            _ => "".to_string(),
+        }
+    }
+
+    fn get_parameter_name(&self, index: i32) -> String {
+        match index {
+            0 => "Parameter 1",
+            1 => "Parameter 2",
+            _ => "",
+        }.to_string()
+    }
+
+    fn set_parameter(&mut self, index: i32, val: f32) {
+        match index {
+            0 => self.param1 = val,
+            1 => self.param2 = val,
+            _ => (),
+        }
     }
 }
 

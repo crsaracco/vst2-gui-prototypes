@@ -1,19 +1,17 @@
 use std::ffi::c_void;
-use std::cell::{RefCell, RefMut};
-use std::borrow::BorrowMut;
 use log::*;
 
 pub struct Editor {
     is_open: bool,
-    polyline: Vec<xcb::Point>,
-    x_connection: Box<xcb::Connection>,
-    screen_num: i32,
-    window_handle: u32,
-    draw_context: u32,
     x: i32,
     y: i32,
     width: i32,
     height: i32,
+    x_connection: Box<xcb::Connection>,
+    screen_num: i32,
+    window_handle: u32,
+    draw_context: u32,
+    polyline: Vec<xcb::Point>,
 }
 
 impl Editor {
@@ -31,15 +29,15 @@ impl Editor {
 
         Self {
             is_open: false,
-            polyline,
-            x_connection: Box::new(conn),
-            screen_num,
-            window_handle: 0,
-            draw_context: 0,
             x: 0,
             y: 0,
             width: 1000,
             height: 1000,
+            x_connection: Box::new(conn),
+            screen_num,
+            window_handle: 0,
+            draw_context: 0,
+            polyline,
         }
     }
 
@@ -51,7 +49,7 @@ impl Editor {
         let draw_context = self.draw_context;
 
         xcb::create_gc(conn, draw_context, parent, &[
-            (xcb::GC_FOREGROUND, self.get_screen().black_pixel()),
+            (xcb::GC_FOREGROUND, self.get_screen().white_pixel()),
             (xcb::GC_GRAPHICS_EXPOSURES, 0),
         ]);
     }
@@ -81,7 +79,7 @@ impl Editor {
                            0,
                            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                            self.get_screen().root_visual(), &[
-                (xcb::CW_BACK_PIXEL, self.get_screen().white_pixel()),
+                (xcb::CW_BACK_PIXEL, self.get_screen().black_pixel()),
                 (xcb::CW_EVENT_MASK,
                  xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS),
             ]
@@ -96,11 +94,12 @@ impl Editor {
         info!("GuiVstEditor::draw_editor()");
 
         let conn = self.x_connection.as_ref();
-        xcb::poly_line(conn,
-                       xcb::COORD_MODE_PREVIOUS as u8,
-                       self.window_handle,
-                       self.draw_context,
-                       &self.polyline
+        xcb::poly_line(
+            conn,
+            xcb::COORD_MODE_PREVIOUS as u8,
+            self.window_handle,
+            self.draw_context,
+            &self.polyline
         );
 
         // Flush the request
