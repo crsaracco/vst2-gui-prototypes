@@ -15,7 +15,11 @@ use vst::{
     },
 };
 use log::*;
+use std::thread;
+use std::sync::Arc;
 
+mod x_handle;
+use x_handle::XHandle;
 
 mod editor;
 use editor::Editor;
@@ -24,6 +28,31 @@ struct GuiVst {
     editor: Editor,
     param1: f32,
     param2: f32,
+}
+
+impl GuiVst {
+    fn handle_events(conn: Arc<xcb::Connection>) {
+        loop {
+            let event = conn.wait_for_event();
+            match event {
+                None => (),
+                Some(event) => {
+                    let r = event.response_type();
+                    match r {
+                        xcb::BUTTON_PRESS => {
+                            info!("Button pressed...");
+                        },
+                        xcb::BUTTON_RELEASE => {
+                            info!("Button released...");
+                        },
+                        _ => {
+                            info!("Some sort of event...?");
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Default for GuiVst {
@@ -42,8 +71,16 @@ impl Default for GuiVst {
             ]
         ).unwrap();
 
+        let (conn, screen_num) = xcb::base::Connection::connect(None).unwrap();
+        let arc_conn = Arc::new(conn);
+        let cloned_arc_conn = arc_conn.clone();
+
+        thread::spawn(move || {
+            GuiVst::handle_events(cloned_arc_conn);
+        });
+
         Self {
-            editor: Editor::new(),
+            editor: Editor::new(arc_conn.clone(), screen_num),
             param1: 0.0,
             param2: 0.0,
         }
@@ -67,12 +104,14 @@ impl Plugin for GuiVst {
 
     fn init(&mut self) {
         info!("init()");
+
+
     }
 
     // TODO: return None if the editor couldn't be created
     // (for example, if the connection to the X server couldn't be established)
     fn get_editor(&mut self) -> Option<&mut vst::editor::Editor> {
-        info!("get_editor()");
+        //info!("get_editor()");
         self.editor.draw_editor();
         Some(&mut self.editor)
     }

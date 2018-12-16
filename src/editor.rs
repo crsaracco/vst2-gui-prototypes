@@ -1,5 +1,9 @@
 use std::ffi::c_void;
 use log::*;
+use std::thread;
+use std::sync::Arc;
+
+use crate::x_handle::XHandle;
 
 pub struct Editor {
     is_open: bool,
@@ -7,7 +11,7 @@ pub struct Editor {
     y: i32,
     width: i32,
     height: i32,
-    x_connection: Box<xcb::Connection>,
+    conn: Arc<xcb::Connection>,
     screen_num: i32,
     window_handle: u32,
     draw_context: u32,
@@ -16,10 +20,8 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new() -> Self {
+    pub fn new(conn: Arc<xcb::Connection>, screen_num: i32) -> Self {
         info!("GuiVstEditor::new()");
-
-        let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
 
         Self {
             is_open: false,
@@ -27,7 +29,7 @@ impl Editor {
             y: 0,
             width: 1000,
             height: 1000,
-            x_connection: Box::new(conn),
+            conn,
             screen_num,
             window_handle: 0,
             draw_context: 0,
@@ -38,7 +40,7 @@ impl Editor {
 
     fn create_draw_context(&mut self, parent: u32) {
         info!("GuiVstEditor::create_draw_context()");
-        let conn = self.x_connection.as_ref();
+        let conn = &self.conn;
 
         self.draw_context = conn.generate_id();
         let draw_context = self.draw_context;
@@ -50,8 +52,8 @@ impl Editor {
     }
 
     fn get_screen(&self) -> xcb::StructPtr<'_, xcb::ffi::xcb_screen_t> {
-        info!("GuiVstEditor::get_screen()");
-        let conn = self.x_connection.as_ref();
+        //info!("GuiVstEditor::get_screen()");
+        let conn = &self.conn;
         let setup = conn.get_setup();
         let screen = setup.roots().nth(self.screen_num as usize).unwrap();
         screen
@@ -62,8 +64,10 @@ impl Editor {
 
         self.create_draw_context(parent);
 
-        self.window_handle = self.x_connection.generate_id();
-        xcb::create_window(&self.x_connection,
+        let conn = &self.conn;
+
+        self.window_handle = conn.generate_id();
+        xcb::create_window(conn,
                            xcb::COPY_FROM_PARENT as u8,
                            self.window_handle,
                            parent,
@@ -75,19 +79,19 @@ impl Editor {
                            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                            self.get_screen().root_visual(), &[
                 (xcb::CW_BACK_PIXEL, self.get_screen().black_pixel()),
-                (xcb::CW_EVENT_MASK, xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS),
+                (xcb::CW_EVENT_MASK, xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_BUTTON_PRESS),
             ]
         );
-        xcb::map_window(&self.x_connection, self.window_handle);
-        self.x_connection.flush();
+        xcb::map_window(conn, self.window_handle);
+        conn.flush();
 
         self.draw_editor();
     }
 
     pub fn draw_editor(&mut self) {
-        info!("GuiVstEditor::draw_editor()");
+        //info!("GuiVstEditor::draw_editor()");
 
-        let conn = self.x_connection.as_ref();
+        let conn = &self.conn;
 
         // Clear screen
         xcb::change_gc(
@@ -136,7 +140,6 @@ impl Editor {
             self.draw_context,
             &rectangle_values,
         );
-
 
         // Flush the request
         conn.flush();

@@ -8,7 +8,10 @@ edition = "2018"
 vst = { path = "/home/crs/programming/rust/rust-vst/" }
 log = "0.4"
 simplelog = "^0.5.0"
-xcb = "0.8"
+
+[dependencies.xcb]
+version = "0.8"
+features = ["thread"]
 
 [lib]
 name = "guivst"
