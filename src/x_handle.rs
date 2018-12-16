@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 pub struct XHandle {
-    pub conn: xcb::base::Connection,
-    pub screen_num: i32,
+    conn: Arc<xcb::Connection>,
+    screen_num: i32,
 }
 
 impl XHandle {
@@ -8,8 +10,34 @@ impl XHandle {
         let (conn, screen_num) = xcb::base::Connection::connect(None).unwrap();
 
         Self {
-            conn,
+            conn: Arc::new(conn),
             screen_num,
         }
+    }
+
+    pub fn conn(&self) -> Arc<xcb::base::Connection> {
+        self.conn.clone()
+    }
+
+    pub fn screen_num(&self) -> i32 {
+        self.screen_num
+    }
+}
+
+
+extern crate test;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use test::Bencher;
+
+    #[bench]
+    fn clone_connection(b: &mut Bencher) {
+        let x_handle = Box::new(XHandle::new());
+
+        b.iter(|| {
+            let _conn = x_handle.conn();
+        });
     }
 }

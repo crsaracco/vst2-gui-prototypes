@@ -1,7 +1,7 @@
 use std::ffi::c_void;
 use log::*;
-use std::thread;
 use std::sync::Arc;
+use std::borrow::Borrow;
 
 use crate::x_handle::XHandle;
 
@@ -11,8 +11,7 @@ pub struct Editor {
     y: i32,
     width: i32,
     height: i32,
-    conn: Arc<xcb::Connection>,
-    screen_num: i32,
+    x_handle: Box<XHandle>,
     window_handle: u32,
     draw_context: u32,
     param1_value: f32,
@@ -20,7 +19,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(conn: Arc<xcb::Connection>, screen_num: i32) -> Self {
+    pub fn new(x_handle: Box<XHandle>) -> Self {
         info!("GuiVstEditor::new()");
 
         Self {
@@ -29,8 +28,7 @@ impl Editor {
             y: 0,
             width: 1000,
             height: 1000,
-            conn,
-            screen_num,
+            x_handle,
             window_handle: 0,
             draw_context: 0,
             param1_value: 0.0,
@@ -40,23 +38,17 @@ impl Editor {
 
     fn create_draw_context(&mut self, parent: u32) {
         info!("GuiVstEditor::create_draw_context()");
-        let conn = &self.conn;
+        let conn = self.x_handle.conn();
+        let setup = conn.get_setup();
+        let screen = setup.roots().nth(self.x_handle.screen_num() as usize).unwrap();
 
         self.draw_context = conn.generate_id();
         let draw_context = self.draw_context;
 
-        xcb::create_gc(conn, draw_context, parent, &[
-            (xcb::GC_FOREGROUND, self.get_screen().white_pixel()),
+        xcb::create_gc(conn.borrow(), draw_context, parent, &[
+            (xcb::GC_FOREGROUND, screen.white_pixel()),
             (xcb::GC_GRAPHICS_EXPOSURES, 0),
         ]);
-    }
-
-    fn get_screen(&self) -> xcb::StructPtr<'_, xcb::ffi::xcb_screen_t> {
-        //info!("GuiVstEditor::get_screen()");
-        let conn = &self.conn;
-        let setup = conn.get_setup();
-        let screen = setup.roots().nth(self.screen_num as usize).unwrap();
-        screen
     }
 
     fn create_window(&mut self, parent: u32) {
@@ -64,10 +56,12 @@ impl Editor {
 
         self.create_draw_context(parent);
 
-        let conn = &self.conn;
+        let conn = self.x_handle.conn();
+        let setup = conn.get_setup();
+        let screen = setup.roots().nth(self.x_handle.screen_num() as usize).unwrap();
 
         self.window_handle = conn.generate_id();
-        xcb::create_window(conn,
+        xcb::create_window(&conn,
                            xcb::COPY_FROM_PARENT as u8,
                            self.window_handle,
                            parent,
@@ -77,12 +71,12 @@ impl Editor {
                            self.height as u16,
                            0,
                            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
-                           self.get_screen().root_visual(), &[
-                (xcb::CW_BACK_PIXEL, self.get_screen().black_pixel()),
+                           screen.root_visual(), &[
+                (xcb::CW_BACK_PIXEL, screen.black_pixel()),
                 (xcb::CW_EVENT_MASK, xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_BUTTON_PRESS),
             ]
         );
-        xcb::map_window(conn, self.window_handle);
+        xcb::map_window(&conn, self.window_handle);
         conn.flush();
 
         self.draw_editor();
@@ -91,20 +85,22 @@ impl Editor {
     pub fn draw_editor(&mut self) {
         //info!("GuiVstEditor::draw_editor()");
 
-        let conn = &self.conn;
+        let conn = self.x_handle.conn();
+        let setup = conn.get_setup();
+        let screen = setup.roots().nth(self.x_handle.screen_num() as usize).unwrap();
 
         // Clear screen
         xcb::change_gc(
-            conn,
+            conn.borrow(),
             self.draw_context,
             &[
-                (xcb::GC_FOREGROUND, self.get_screen().black_pixel()),
-                (xcb::GC_BACKGROUND, self.get_screen().black_pixel()),
+                (xcb::GC_FOREGROUND, screen.black_pixel()),
+                (xcb::GC_BACKGROUND, screen.black_pixel()),
                 (xcb::GC_FILL_STYLE, xcb::FILL_STYLE_SOLID),
             ]
         );
         xcb::poly_fill_rectangle(
-            conn,
+            conn.borrow(),
             self.window_handle,
             self.draw_context,
             &[xcb::Rectangle::new(0, 0, 1000, 1000)],
@@ -112,11 +108,11 @@ impl Editor {
 
         // Draw parameters on screen
         xcb::change_gc(
-            conn,
+            conn.borrow(),
             self.draw_context,
             &[
-                (xcb::GC_FOREGROUND, self.get_screen().white_pixel()),
-                (xcb::GC_BACKGROUND, self.get_screen().white_pixel()),
+                (xcb::GC_FOREGROUND, screen.white_pixel()),
+                (xcb::GC_BACKGROUND, screen.white_pixel()),
                 (xcb::GC_FILL_STYLE, xcb::FILL_STYLE_SOLID),
             ]
         );
@@ -129,13 +125,13 @@ impl Editor {
             xcb::Rectangle::new(50, 600, (self.param2_value * 900.0) as u16, 100),
         );
         xcb::poly_rectangle(
-            conn,
+            conn.borrow(),
             self.window_handle,
             self.draw_context,
             &rectangle_borders,
         );
         xcb::poly_fill_rectangle(
-            conn,
+            conn.borrow(),
             self.window_handle,
             self.draw_context,
             &rectangle_values,

@@ -1,4 +1,5 @@
 #![feature(uniform_paths)]
+#![feature(test)]
 
 extern crate vst;
 extern crate log;
@@ -71,16 +72,18 @@ impl Default for GuiVst {
             ]
         ).unwrap();
 
-        let (conn, screen_num) = xcb::base::Connection::connect(None).unwrap();
-        let arc_conn = Arc::new(conn);
-        let cloned_arc_conn = arc_conn.clone();
+        // Set up the X connection.
+        let x_handle = Box::new(XHandle::new());
 
+        // Start handling events on this connection.
+        let thread_conn = x_handle.conn();
         thread::spawn(move || {
-            GuiVst::handle_events(cloned_arc_conn);
+            GuiVst::handle_events(thread_conn);
         });
 
+        // Set up an Editor that uses this connection.
         Self {
-            editor: Editor::new(arc_conn.clone(), screen_num),
+            editor: Editor::new(x_handle),
             param1: 0.0,
             param2: 0.0,
         }
