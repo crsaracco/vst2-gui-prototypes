@@ -11,19 +11,13 @@ pub struct Editor {
     screen_num: i32,
     window_handle: u32,
     draw_context: u32,
-    polyline: Vec<xcb::Point>,
+    param1_value: f32,
+    param2_value: f32,
 }
 
 impl Editor {
     pub fn new() -> Self {
         info!("GuiVstEditor::new()");
-
-        let mut polyline: Vec<xcb::Point> = vec![];
-
-        polyline.push(xcb::Point::new(50, 10 ));
-        polyline.push(xcb::Point::new(5, 20 ));
-        polyline.push(xcb::Point::new(25, -20 ));
-        polyline.push(xcb::Point::new(10, 10 ));
 
         let (conn, screen_num) = xcb::Connection::connect(None).unwrap();
 
@@ -37,7 +31,8 @@ impl Editor {
             screen_num,
             window_handle: 0,
             draw_context: 0,
-            polyline,
+            param1_value: 0.0,
+            param2_value: 0.0,
         }
     }
 
@@ -55,6 +50,7 @@ impl Editor {
     }
 
     fn get_screen(&self) -> xcb::StructPtr<'_, xcb::ffi::xcb_screen_t> {
+        info!("GuiVstEditor::get_screen()");
         let conn = self.x_connection.as_ref();
         let setup = conn.get_setup();
         let screen = setup.roots().nth(self.screen_num as usize).unwrap();
@@ -63,7 +59,6 @@ impl Editor {
 
     fn create_window(&mut self, parent: u32) {
         info!("GuiVstEditor::create_window()");
-        info!("Parent: {}", parent);
 
         self.create_draw_context(parent);
 
@@ -80,8 +75,7 @@ impl Editor {
                            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                            self.get_screen().root_visual(), &[
                 (xcb::CW_BACK_PIXEL, self.get_screen().black_pixel()),
-                (xcb::CW_EVENT_MASK,
-                 xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS),
+                (xcb::CW_EVENT_MASK, xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_KEY_PRESS),
             ]
         );
         xcb::map_window(&self.x_connection, self.window_handle);
@@ -94,16 +88,68 @@ impl Editor {
         info!("GuiVstEditor::draw_editor()");
 
         let conn = self.x_connection.as_ref();
-        xcb::poly_line(
+
+        // Clear screen
+        xcb::change_gc(
             conn,
-            xcb::COORD_MODE_PREVIOUS as u8,
+            self.draw_context,
+            &[
+                (xcb::GC_FOREGROUND, self.get_screen().black_pixel()),
+                (xcb::GC_BACKGROUND, self.get_screen().black_pixel()),
+                (xcb::GC_FILL_STYLE, xcb::FILL_STYLE_SOLID),
+            ]
+        );
+        xcb::poly_fill_rectangle(
+            conn,
             self.window_handle,
             self.draw_context,
-            &self.polyline
+            &[xcb::Rectangle::new(0, 0, 1000, 1000)],
         );
+
+        // Draw parameters on screen
+        xcb::change_gc(
+            conn,
+            self.draw_context,
+            &[
+                (xcb::GC_FOREGROUND, self.get_screen().white_pixel()),
+                (xcb::GC_BACKGROUND, self.get_screen().white_pixel()),
+                (xcb::GC_FILL_STYLE, xcb::FILL_STYLE_SOLID),
+            ]
+        );
+        let rectangle_borders = vec!(
+            xcb::Rectangle::new(50, 300, 900, 100),
+            xcb::Rectangle::new(50, 600, 900, 100),
+        );
+        let rectangle_values = vec!(
+            xcb::Rectangle::new(50, 300, (self.param1_value * 900.0) as u16, 100),
+            xcb::Rectangle::new(50, 600, (self.param2_value * 900.0) as u16, 100),
+        );
+        xcb::poly_rectangle(
+            conn,
+            self.window_handle,
+            self.draw_context,
+            &rectangle_borders,
+        );
+        xcb::poly_fill_rectangle(
+            conn,
+            self.window_handle,
+            self.draw_context,
+            &rectangle_values,
+        );
+
 
         // Flush the request
         conn.flush();
+    }
+
+    pub fn change_param1_value(&mut self, value: f32) {
+        info!("GuiVstEditor::change_param1_value({})", value);
+        self.param1_value = value;
+    }
+
+    pub fn change_param2_value(&mut self, value: f32) {
+        info!("GuiVstEditor::change_param2_value({})", value);
+        self.param2_value = value;
     }
 }
 

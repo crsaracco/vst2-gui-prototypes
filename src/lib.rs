@@ -103,8 +103,14 @@ impl Plugin for GuiVst {
 
     fn set_parameter(&mut self, index: i32, val: f32) {
         match index {
-            0 => self.param1 = val,
-            1 => self.param2 = val,
+            0 => {
+                self.param1 = val;
+                self.editor.change_param1_value(val);
+            },
+            1 => {
+                self.param2 = val;
+                self.editor.change_param2_value(val);
+            },
             _ => (),
         }
     }
