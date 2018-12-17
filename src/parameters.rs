@@ -8,8 +8,8 @@ pub struct Parameters {
 impl Parameters {
     pub fn new() -> Self {
         Self {
-            param1: AtomicFloat::new(0.0),
-            param2: AtomicFloat::new(0.0),
+            param1: AtomicFloat::new(1.0),
+            param2: AtomicFloat::new(0.5),
         }
     }
 }

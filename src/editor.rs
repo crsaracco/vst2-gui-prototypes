@@ -182,7 +182,10 @@ impl Editor {
                                 let param2_value = (event.event_x() - 50) as f64 / 900.0;
                                 parameters.param2.set(param2_value as f32);
                                 active_element = ActiveElement::Param2;
-                                host_callback.lock().unwrap().automate(0, parameters.param2.get());
+                                host_callback.lock().unwrap().automate(1, parameters.param2.get());
+                            }
+                            else {
+                                active_element = ActiveElement::None;
                             }
 
                         }
