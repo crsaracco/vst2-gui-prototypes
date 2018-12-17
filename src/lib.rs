@@ -16,17 +16,20 @@ use vst::{
     },
 };
 use log::*;
+use std::sync::Arc;
 
 mod x_handle;
-use x_handle::XHandle;
-
 mod editor;
+mod atomic_float;
+mod parameters;
+
+use x_handle::XHandle;
 use editor::Editor;
+use parameters::Parameters;
 
 struct GuiVst {
     editor: Editor,
-    param1: f32,
-    param2: f32,
+    parameters: Arc<Parameters>,
 }
 
 impl Default for GuiVst {
@@ -48,11 +51,13 @@ impl Default for GuiVst {
         // Set up the X connection.
         let x_handle = Box::new(XHandle::new());
 
+        // Set up the parameters.
+        let parameters = Arc::new(Parameters::new());
+
         // Set up an Editor that uses this connection.
         Self {
-            editor: Editor::new(x_handle),
-            param1: 0.0,
-            param2: 0.0,
+            editor: Editor::new(x_handle, parameters.clone()),
+            parameters,
         }
     }
 }
@@ -86,16 +91,16 @@ impl Plugin for GuiVst {
 
     fn get_parameter(&self, index: i32) -> f32 {
         match index {
-            0 => self.param1,
-            1 => self.param2,
+            0 => self.parameters.param1.get(),
+            1 => self.parameters.param2.get(),
             _ => 0.0,
         }
     }
 
     fn get_parameter_text(&self, index: i32) -> String {
         match index {
-            0 => format!("{:.1}%", self.param1 * 100.0),
-            1 => format!("{:.1}%", self.param2 * 100.0),
+            0 => format!("{:.1}%", self.parameters.param1.get() * 100.0),
+            1 => format!("{:.1}%", self.parameters.param2.get() * 100.0),
             _ => "".to_string(),
         }
     }
@@ -111,12 +116,10 @@ impl Plugin for GuiVst {
     fn set_parameter(&mut self, index: i32, val: f32) {
         match index {
             0 => {
-                self.param1 = val;
-                self.editor.change_param1_value(val);
+                self.parameters.param1.set(val);
             },
             1 => {
-                self.param2 = val;
-                self.editor.change_param2_value(val);
+                self.parameters.param2.set(val);
             },
             _ => (),
         }

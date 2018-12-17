@@ -5,6 +5,7 @@ use std::borrow::Borrow;
 use std::thread;
 
 use crate::x_handle::XHandle;
+use crate::parameters::Parameters;
 
 pub struct Editor {
     is_open: bool,
@@ -15,12 +16,11 @@ pub struct Editor {
     x_handle: Box<XHandle>,
     window_handle: u32,
     draw_context: u32,
-    param1_value: f32,
-    param2_value: f32,
+    parameters: Arc<Parameters>,
 }
 
 impl Editor {
-    pub fn new(x_handle: Box<XHandle>) -> Self {
+    pub fn new(x_handle: Box<XHandle>, parameters: Arc<Parameters>) -> Self {
         info!("GuiVstEditor::new()");
 
         Self {
@@ -32,8 +32,7 @@ impl Editor {
             x_handle,
             window_handle: 0,
             draw_context: 0,
-            param1_value: 0.0,
-            param2_value: 0.0,
+            parameters,
         }
     }
 
@@ -131,8 +130,8 @@ impl Editor {
             xcb::Rectangle::new(50, 600, 900, 100),
         );
         let rectangle_values = vec!(
-            xcb::Rectangle::new(50, 300, (self.param1_value * 900.0) as u16, 100),
-            xcb::Rectangle::new(50, 600, (self.param2_value * 900.0) as u16, 100),
+            xcb::Rectangle::new(50, 300, (self.parameters.param1.get() * 900.0) as u16, 100),
+            xcb::Rectangle::new(50, 600, (self.parameters.param2.get() * 900.0) as u16, 100),
         );
         xcb::poly_rectangle(
             conn.borrow(),
@@ -149,16 +148,6 @@ impl Editor {
 
         // Flush the request
         conn.flush();
-    }
-
-    pub fn change_param1_value(&mut self, value: f32) {
-        info!("GuiVstEditor::change_param1_value({})", value);
-        self.param1_value = value;
-    }
-
-    pub fn change_param2_value(&mut self, value: f32) {
-        info!("GuiVstEditor::change_param2_value({})", value);
-        self.param2_value = value;
     }
 
     fn handle_events(conn: Arc<xcb::Connection>) {
