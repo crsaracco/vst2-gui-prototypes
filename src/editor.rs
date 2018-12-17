@@ -3,6 +3,9 @@ use log::*;
 use std::sync::Arc;
 use std::borrow::Borrow;
 use std::thread;
+use vst::plugin::HostCallback;
+use vst::host::Host;
+use std::sync::Mutex;
 
 use crate::x_handle::XHandle;
 use crate::parameters::Parameters;
@@ -17,10 +20,11 @@ pub struct Editor {
     window_handle: u32,
     draw_context: u32,
     parameters: Arc<Parameters>,
+    host_callback: Arc<Mutex<HostCallback>>,
 }
 
 impl Editor {
-    pub fn new(x_handle: Box<XHandle>, parameters: Arc<Parameters>) -> Self {
+    pub fn new(x_handle: Box<XHandle>, parameters: Arc<Parameters>, host_callback: Arc<Mutex<HostCallback>>) -> Self {
         info!("GuiVstEditor::new()");
 
         Self {
@@ -33,6 +37,7 @@ impl Editor {
             window_handle: 0,
             draw_context: 0,
             parameters,
+            host_callback,
         }
     }
 
@@ -76,7 +81,8 @@ impl Editor {
                 (xcb::CW_EVENT_MASK,
                     xcb::EVENT_MASK_EXPOSURE |
                     xcb::EVENT_MASK_BUTTON_PRESS |
-                    xcb::EVENT_MASK_BUTTON_RELEASE
+                    xcb::EVENT_MASK_BUTTON_RELEASE |
+                    xcb::EVENT_MASK_BUTTON_1_MOTION
                 ),
             ]
         );
@@ -86,8 +92,10 @@ impl Editor {
         self.draw_editor();
 
         // Start handling events on this connection.
+        let arc_parameters = self.parameters.clone();
+        let arc_host_callback = self.host_callback.clone();
         thread::spawn(move || {
-            Editor::handle_events(conn);
+            Editor::handle_events(conn, arc_parameters, arc_host_callback);
         });
     }
 
@@ -150,7 +158,8 @@ impl Editor {
         conn.flush();
     }
 
-    fn handle_events(conn: Arc<xcb::Connection>) {
+    fn handle_events(conn: Arc<xcb::Connection>, parameters: Arc<Parameters>, host_callback: Arc<Mutex<HostCallback>>) {
+        let mut active_element = ActiveElement::None;
         loop {
             let wait = conn.wait_for_event();
             if let Some(event) = wait {
@@ -162,11 +171,65 @@ impl Editor {
                         // Left mouse button only
                         if button == 1 {
                             info!("Button press at: ({}, {})", event.event_x(), event.event_y());
+
+                            if event.event_y() >= 300 && event.event_y() <= 400 && event.event_x() >= 50 && event.event_x() <= 950 {
+                                let param1_value = (event.event_x() - 50) as f64 / 900.0;
+                                parameters.param1.set(param1_value as f32);
+                                active_element = ActiveElement::Param1;
+                                host_callback.lock().unwrap().automate(0, parameters.param1.get());
+                            }
+                            else if event.event_y() >= 600 && event.event_y() <= 700 && event.event_x() >= 50 && event.event_x() <= 950 {
+                                let param2_value = (event.event_x() - 50) as f64 / 900.0;
+                                parameters.param2.set(param2_value as f32);
+                                active_element = ActiveElement::Param2;
+                                host_callback.lock().unwrap().automate(0, parameters.param2.get());
+                            }
+
                         }
+
+
+                        host_callback.lock().unwrap().automate(1, parameters.param2.get());
                     },
+                    xcb::MOTION_NOTIFY => {
+                        let event = unsafe { xcb::cast_event::<xcb::MotionNotifyEvent>(&event) };
+                        info!("Motion notify event: ({}, {}) - Active: {:?}", event.event_x(), event.event_y(), active_element);
+
+                        if active_element == ActiveElement::Param1 {
+                            let mut param1_value = 0.0;
+
+                            if event.event_x() < 50 {
+                                // keep param1 value at 0.0
+                            }
+                            else if event.event_x() >= 50 && event.event_x() <= 950 {
+                                param1_value = (event.event_x() - 50) as f64 / 900.0;
+                            }
+                            else {
+                                param1_value = 1.0;
+                            }
+                            parameters.param1.set(param1_value as f32);
+                            host_callback.lock().unwrap().automate(0, parameters.param1.get());
+                        }
+                        else if active_element == ActiveElement::Param2 {
+                            let mut param2_value = 0.0;
+
+                            if event.event_x() < 50 {
+                                // keep param2 value at 0.0
+                            }
+                            else if event.event_x() >= 50 && event.event_x() <= 950 {
+                                param2_value = (event.event_x() - 50) as f64 / 900.0;
+                            }
+                            else {
+                                param2_value = 1.0;
+                            }
+                            parameters.param2.set(param2_value as f32);
+                            host_callback.lock().unwrap().automate(1, parameters.param2.get());
+                        }
+                    }
                     xcb::BUTTON_RELEASE => {
                         let event = unsafe { xcb::cast_event::<xcb::ButtonReleaseEvent>(&event) };
                         let button = event.detail();
+
+                        active_element = ActiveElement::None;
 
                         // Left mouse button only
                         if button == 1 {
@@ -206,4 +269,11 @@ impl vst::editor::Editor for Editor {
         info!("Editor::is_open()");
         self.is_open
     }
+}
+
+#[derive(PartialEq, Debug)]
+enum ActiveElement {
+    None,
+    Param1,
+    Param2,
 }

@@ -13,10 +13,13 @@ use vst::{
         Plugin,
         Info,
         Category,
+        HostCallback,
     },
+    host::Host,
 };
 use log::*;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 mod x_handle;
 mod editor;
@@ -28,12 +31,19 @@ use editor::Editor;
 use parameters::Parameters;
 
 struct GuiVst {
+    host: HostCallback,
     editor: Editor,
     parameters: Arc<Parameters>,
 }
 
 impl Default for GuiVst {
     fn default() -> Self {
+        GuiVst::new(HostCallback::default())
+    }
+}
+
+impl Plugin for GuiVst {
+    fn new(host: HostCallback) -> Self {
         // Set up a logger so we can see what's going on in the VST
         let mut logger_config = simplelog::Config::default();
         logger_config.time_format = Some("%H:%M:%S%.6f");
@@ -48,21 +58,18 @@ impl Default for GuiVst {
             ]
         ).unwrap();
 
-        // Set up the X connection.
         let x_handle = Box::new(XHandle::new());
-
-        // Set up the parameters.
         let parameters = Arc::new(Parameters::new());
+        let host_callback = Arc::new(Mutex::new(host));
 
         // Set up an Editor that uses this connection.
         Self {
-            editor: Editor::new(x_handle, parameters.clone()),
+            host,
+            editor: Editor::new(x_handle, parameters.clone(), host_callback),
             parameters,
         }
     }
-}
 
-impl Plugin for GuiVst {
     fn get_info(&self) -> Info {
         Info {
             name: "gui-vst".to_string(),
@@ -79,6 +86,7 @@ impl Plugin for GuiVst {
 
     fn init(&mut self) {
         info!("init()");
+        info!("host VST version: {}", self.host.vst_version());
     }
 
     // TODO: return None if the editor couldn't be created
@@ -90,6 +98,7 @@ impl Plugin for GuiVst {
     }
 
     fn get_parameter(&self, index: i32) -> f32 {
+        info!("get_parameter");
         match index {
             0 => self.parameters.param1.get(),
             1 => self.parameters.param2.get(),
@@ -114,6 +123,7 @@ impl Plugin for GuiVst {
     }
 
     fn set_parameter(&mut self, index: i32, val: f32) {
+        info!("set_parameter");
         match index {
             0 => {
                 self.parameters.param1.set(val);
