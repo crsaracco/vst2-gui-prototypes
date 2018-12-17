@@ -1,6 +1,6 @@
 # gui-vst
 
-A bare minimum VST, with an X11 windowing system.
+A VST with a bare-minimum GUI, using `rust-vst` and `rust-xcb`
 
 ## Video demo
 
