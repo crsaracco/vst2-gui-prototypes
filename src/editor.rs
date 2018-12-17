@@ -2,6 +2,7 @@ use std::ffi::c_void;
 use log::*;
 use std::sync::Arc;
 use std::borrow::Borrow;
+use std::thread;
 
 use crate::x_handle::XHandle;
 
@@ -73,13 +74,22 @@ impl Editor {
                            xcb::WINDOW_CLASS_INPUT_OUTPUT as u16,
                            screen.root_visual(), &[
                 (xcb::CW_BACK_PIXEL, screen.black_pixel()),
-                (xcb::CW_EVENT_MASK, xcb::EVENT_MASK_EXPOSURE | xcb::EVENT_MASK_BUTTON_PRESS),
+                (xcb::CW_EVENT_MASK,
+                    xcb::EVENT_MASK_EXPOSURE |
+                    xcb::EVENT_MASK_BUTTON_PRESS |
+                    xcb::EVENT_MASK_BUTTON_RELEASE
+                ),
             ]
         );
         xcb::map_window(&conn, self.window_handle);
         conn.flush();
 
         self.draw_editor();
+
+        // Start handling events on this connection.
+        thread::spawn(move || {
+            Editor::handle_events(conn);
+        });
     }
 
     pub fn draw_editor(&mut self) {
@@ -149,6 +159,36 @@ impl Editor {
     pub fn change_param2_value(&mut self, value: f32) {
         info!("GuiVstEditor::change_param2_value({})", value);
         self.param2_value = value;
+    }
+
+    fn handle_events(conn: Arc<xcb::Connection>) {
+        loop {
+            let wait = conn.wait_for_event();
+            if let Some(event) = wait {
+                match event.response_type() {
+                    xcb::BUTTON_PRESS => {
+                        let event = unsafe { xcb::cast_event::<xcb::ButtonPressEvent>(&event) };
+                        let button = event.detail();
+
+                        // Left mouse button only
+                        if button == 1 {
+                            info!("Button press at: ({}, {})", event.event_x(), event.event_y());
+                        }
+                    },
+                    xcb::BUTTON_RELEASE => {
+                        let event = unsafe { xcb::cast_event::<xcb::ButtonReleaseEvent>(&event) };
+                        let button = event.detail();
+
+                        // Left mouse button only
+                        if button == 1 {
+                            info!("Button release at: ({}, {})", event.event_x(), event.event_y());
+                        }
+                    },
+                    _ => {
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -16,8 +16,6 @@ use vst::{
     },
 };
 use log::*;
-use std::thread;
-use std::sync::Arc;
 
 mod x_handle;
 use x_handle::XHandle;
@@ -29,31 +27,6 @@ struct GuiVst {
     editor: Editor,
     param1: f32,
     param2: f32,
-}
-
-impl GuiVst {
-    fn handle_events(conn: Arc<xcb::Connection>) {
-        loop {
-            let event = conn.wait_for_event();
-            match event {
-                None => (),
-                Some(event) => {
-                    let r = event.response_type();
-                    match r {
-                        xcb::BUTTON_PRESS => {
-                            info!("Button pressed...");
-                        },
-                        xcb::BUTTON_RELEASE => {
-                            info!("Button released...");
-                        },
-                        _ => {
-                            info!("Some sort of event...?");
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 impl Default for GuiVst {
@@ -74,12 +47,6 @@ impl Default for GuiVst {
 
         // Set up the X connection.
         let x_handle = Box::new(XHandle::new());
-
-        // Start handling events on this connection.
-        let thread_conn = x_handle.conn();
-        thread::spawn(move || {
-            GuiVst::handle_events(thread_conn);
-        });
 
         // Set up an Editor that uses this connection.
         Self {
@@ -107,8 +74,6 @@ impl Plugin for GuiVst {
 
     fn init(&mut self) {
         info!("init()");
-
-
     }
 
     // TODO: return None if the editor couldn't be created
