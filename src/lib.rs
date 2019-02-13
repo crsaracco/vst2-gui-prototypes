@@ -1,6 +1,3 @@
-#![feature(uniform_paths)]
-#![feature(test)]
-
 extern crate vst;
 extern crate log;
 extern crate simplelog;

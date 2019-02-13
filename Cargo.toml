@@ -5,7 +5,7 @@ authors = ["Charles Saracco <crsaracco@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-vst = { path = "/home/crs/git/github/rust-vst/" }
+vst = { git = "https://github.com/rust-dsp/rust-vst" }
 log = "0.4"
 simplelog = "^0.5.0"
 

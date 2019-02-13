@@ -23,21 +23,3 @@ impl XHandle {
         self.screen_num
     }
 }
-
-
-extern crate test;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use test::Bencher;
-
-    #[bench]
-    fn clone_connection(b: &mut Bencher) {
-        let x_handle = Box::new(XHandle::new());
-
-        b.iter(|| {
-            let _conn = x_handle.conn();
-        });
-    }
-}
