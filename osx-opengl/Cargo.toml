@@ -1,0 +1,11 @@
+[package]
+name = "osx_opengl"
+version = "0.1.0"
+authors = ["crs"]
+edition = "2018"
+
+[dependencies]
+cocoa = "0.18.4"
+objc = "0.2.2"
+gl = "*"
+core-foundation = "0.4"

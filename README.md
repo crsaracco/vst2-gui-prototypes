@@ -5,6 +5,7 @@ A bunch of prototypes of GUIs for [`rust-vst`](https://github.com/rust-dsp/rust-
 ## Projects
 
  - [`xcb-raw`](xcb-raw/) -- A GUI for linux, using X11/XCB with raw X11 drawing calls.
+ - [`osx-opengl`](osx-opengl/) -- Playing around with OpenGL on Mac OS X. No actual VST here!
 
 ## License
 
