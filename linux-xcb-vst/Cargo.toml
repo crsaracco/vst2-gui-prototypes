@@ -1,5 +1,5 @@
 [package]
-name = "xcb-raw"
+name = "linux-xcb-vst"
 version = "0.1.0"
 authors = ["Charles Saracco <crsaracco@gmail.com>"]
 edition = "2018"

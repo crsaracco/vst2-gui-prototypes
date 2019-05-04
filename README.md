@@ -6,8 +6,8 @@ For a crate that's designed to actually be used, check out [`vst2-window`](https
 
 ## Projects
 
- - [`xcb-raw`](xcb-raw/) -- A GUI for linux, using X11/XCB with raw X11 drawing calls.
- - [`linux-opengl-vst`](linux-opengl-vst/) -- A VST with an OpenGL context, for Linux.
+ - [`linux-xcb-vst`](linux-xcb-vst/) -- A VST with an X11 context (using raw XCB/X11 draw calls), for Linux (or anything that uses X11). Demo video included!
+ - [`linux-opengl-vst`](linux-opengl-vst/) -- A VST with an OpenGL context, for Linux (or anything that uses X11).
  - [`windows-opengl-vst`](windows-opengl-vst/) -- A VST with an OpenGL context, for Windows.
  - [`windows-opengl`](windows-opengl/) -- Playing around with OpenGL on Windows. No actual VST here!
  - [`osx-opengl`](osx-opengl/) -- Playing around with OpenGL on Mac OS X. No actual VST here!
