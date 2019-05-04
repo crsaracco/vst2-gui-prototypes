@@ -1,7 +1,11 @@
-# gui-vst
+# vst2-gui-prototypes
 
-A VST with a bare-minimum GUI, using `rust-vst` and `rust-xcb`
+A bunch of prototypes of GUIs for [`rust-vst`](https://github.com/rust-dsp/rust-vst). For a crate that's designed to actually be used, check out `vst2-window`.
 
-## Video demo
+## Projects
 
-[![Video](https://img.youtube.com/vi/kTdoDVDNxus/0.jpg)](https://www.youtube.com/watch?v=kTdoDVDNxus)
+ - [`xcb-raw`](xcb-raw/) -- A GUI for linux, using X11/XCB with raw X11 drawing calls.
+
+## License
+
+Everything in this repo is MIT licensed. Check out the `LICENSE` file for more info.

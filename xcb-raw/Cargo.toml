@@ -1,5 +1,5 @@
 [package]
-name = "gui-vst"
+name = "xcb-raw"
 version = "0.1.0"
 authors = ["Charles Saracco <crsaracco@gmail.com>"]
 edition = "2018"
