@@ -1,0 +1,13 @@
+[package]
+name = "windows-window"
+version = "0.1.0"
+authors = ["Charles <crsaracco@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+winapi = "0.2.*" #TODO: get exact version
+user32-sys = "0.2.*" #TODO: get exact version
+kernel32-sys = "0.2.*" #TODO: get exact version
+gdi32-sys = "0.2.0"
+opengl32-sys = "*" #TODO: get exact version
+gl = "*" #TODO: get exact version
