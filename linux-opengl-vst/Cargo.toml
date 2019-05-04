@@ -1,0 +1,20 @@
+[package]
+name = "linux-opengl-vst"
+version = "0.1.0"
+authors = ["Charles Saracco <crsaracco@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+vst = { git = "https://github.com/crsaracco/rust-vst", branch = "gvl-development" }
+#vst = { path = "/home/crs/git/github/my-rust-vst" }
+log = "0.4"
+simplelog = "^0.5.0"
+libc = "0.2"
+gl = "0.5.2"
+xcb = { version = "0.8", features = ["thread", "xlib_xcb", "dri2"] }
+x11 = { version = "2.3", features = ["xlib", "glx"]}
+rand = "*"
+
+[lib]
+name = "gvl"
+crate-type = ["cdylib"]
