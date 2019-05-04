@@ -1,6 +1,6 @@
 # vst2-gui-prototypes
 
-A bunch of prototypes of GUIs for [`rust-vst`](https://github.com/rust-dsp/rust-vst). For a crate that's designed to actually be used, check out `vst2-window`.
+A bunch of prototypes of GUIs for [`rust-vst`](https://github.com/rust-dsp/rust-vst). For a crate that's designed to actually be used, check out [`vst2-window`](https://github.com/crsaracco/vst2-window) (WIP, help wanted!).
 
 ## Projects
 
