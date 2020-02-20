@@ -2,8 +2,6 @@
 
 A bunch of prototypes of GUIs for [`rust-vst`](https://github.com/rust-dsp/rust-vst).
 
-For a crate that's designed to actually be used, check out [`vst2-window`](https://github.com/crsaracco/vst2-window) (WIP, help wanted!).
-
 ## Projects
 
  - [`linux-xcb-vst`](linux-xcb-vst/) -- A VST with an X11 context (using raw XCB/X11 draw calls), for Linux (or anything that uses X11). Demo video included!
