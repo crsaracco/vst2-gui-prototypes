@@ -29,7 +29,7 @@ impl Win32Window {
                 winapi::CW_USEDEFAULT,    // Default Y coordinate
                 1024,                      // Default width
                 768,                      // Default height
-                parent as *mut winapi::HWND__,               // No parent (TODO: accept parent as input)
+                parent as *mut winapi::HWND__, // Parent window
                 null_mut(),               // No menus
                 window_class.hinstance(), // The instance to the handle...?
                 null_mut(),               // TODO: what is?
